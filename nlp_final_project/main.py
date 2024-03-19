@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 
+from nlp_final_project.models.qapipeline import QAPipeline
+
 
 def gpu_test():
     # Check if GPU is available
@@ -16,5 +18,10 @@ def gpu_test():
     output = model(input_data)
     print("Output:", output.item())
 
+
+def test():
+    pass
+
+
 if __name__ == "__main__":
-    gpu_test()
+    QAPipeline(None, None, None, None)
