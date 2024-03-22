@@ -1,6 +1,9 @@
 # Check if pytorch works as expected
 import torch
 import torch.nn as nn
+from haystack import Document
+from datasets import load_dataset
+from loguru import logger
 
 from nlp_final_project.models.qapipeline import QAPipeline
 
@@ -19,9 +22,13 @@ def gpu_test():
     print("Output:", output.item())
 
 
-def test():
-    pass
-
 
 if __name__ == "__main__":
-    QAPipeline(None, None, None, None)
+    # Random dataset.
+    dataset = load_dataset("bilgeyucel/seven-wonders", split="train")
+    docs = [Document(content=doc["content"], meta=doc["meta"]) for doc in dataset]
+
+    logger.debug("Done loading dataset")
+    qa = QAPipeline.QABuilder().set_docs(docs).build()
+    qa.answer_question("What does Rhodes Statue look like?")
+
