@@ -4,7 +4,7 @@ from getpass import getpass
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
-from haystack.components.generators import OpenAIGenerator
+from haystack.components.generators import OpenAIGenerator, HuggingFaceLocalGenerator
 from haystack.components.retrievers import InMemoryEmbeddingRetriever
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from loguru import logger
@@ -70,15 +70,22 @@ class QAPipeline:
             # Later used by Retriever to retrieve relevant documents from DocumentStore.
             self.text_embedder = SentenceTransformersTextEmbedder(model=self.model)
             # This will get the relevant documents to the query.
-            self.retriever = InMemoryEmbeddingRetriever(self.document_store)
+            self.retriever = InMemoryEmbeddingRetriever(document_store=self.document_store,
+                                                        top_k=2)    # Get the 2 most relevant documents.
 
             self.prompt_builder = PromptBuilder(template=QAPipeline.QABuilder.prompt_template)
-            # The generator is the component that interacts with LLMs. In this
-            # case we use OpenAI GPT models.
+            # The generator is the component that interacts with LLMs
             logger.debug("Instantiating generator.")
-            # TODO: ACTUALLY GET OPENAI API KEY.
-            os.environ["OPENAI_API_KEY"] = getpass("Enter OpenAI API key: ")
-            self.generator = OpenAIGenerator(model="gpt-3.5-turbo")
+
+            # Using an open source language model.
+            self.generator = HuggingFaceLocalGenerator(model="google/flan-t5-large",
+                                                       task="text2text-generation",
+                                                       generation_kwargs={
+                                                           "max_new_tokens": 100,
+                                                           "temperature": 0.9,
+                                                           "do_sample": True
+                                                       })
+            self.generator.warm_up()  # What does this mean?
 
             self.docs = None  # Has to be set
 

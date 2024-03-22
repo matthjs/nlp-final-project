@@ -22,7 +22,6 @@ def gpu_test():
     print("Output:", output.item())
 
 
-
 if __name__ == "__main__":
     # Random dataset.
     dataset = load_dataset("bilgeyucel/seven-wonders", split="train")
@@ -30,5 +29,5 @@ if __name__ == "__main__":
 
     logger.debug("Done loading dataset")
     qa = QAPipeline.QABuilder().set_docs(docs).build()
-    qa.answer_question("What does Rhodes Statue look like?")
-
+    logger.debug("Done constructing pipeline")
+    print(qa.answer_question("What does Rhodes Statue look like?"))
