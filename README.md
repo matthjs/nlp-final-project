@@ -12,6 +12,7 @@
 
 ### Prerequisites
 - [Docker v4.25](https://www.docker.com/get-started) or higher (if running docker container).
+- [ElasticSearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/deb.html)
 - [Poetry](https://python-poetry.org/).
 ## Running
 Using docker: Run the docker-compose files to run all relevant services (`docker compose up` or `docker compose up --build`).

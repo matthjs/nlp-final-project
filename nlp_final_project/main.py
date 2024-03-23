@@ -1,11 +1,10 @@
-# Check if pytorch works as expected
 import torch
 import torch.nn as nn
 from haystack import Document
 from datasets import load_dataset
 from loguru import logger
 
-from nlp_final_project.models.qapipeline import QAPipeline
+from nlp_final_project.models.qapipelinerextr import QAPipelineRetrieverExtractor, in_memory_retriever
 
 
 def gpu_test():
@@ -23,11 +22,22 @@ def gpu_test():
 
 
 if __name__ == "__main__":
-    # Random dataset.
-    dataset = load_dataset("bilgeyucel/seven-wonders", split="train")
-    docs = [Document(content=doc["content"], meta=doc["meta"]) for doc in dataset]
+    # Load dataset
+    dataset = load_dataset("squad")
+    print(dataset)
+    train_set = dataset["train"]
+    validation_set = dataset["validation"]
+    docs = [Document(content=doc["context"]) for doc in train_set]
 
     logger.debug("Done loading dataset")
-    qa = QAPipeline.QABuilder().set_docs(docs).build()
+
+    document_store, retriever = in_memory_retriever()  # Local storage for document embeddings and associated retriever.
+
+    qa = (QAPipelineRetrieverExtractor.QABuilder()
+          .set_docs(docs)
+          .set_document_store(document_store)
+          .set_retriever(retriever)
+          .build())
+
     logger.debug("Done constructing pipeline")
-    print(qa.answer_question("What does Rhodes Statue look like?"))
+    print(qa.answer_question("What was Beyonc\u00e9's first acting job, in 2006?"))
