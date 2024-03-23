@@ -127,7 +127,7 @@ def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://
     # Tricky to setup locally, should probably use with docker or something.
     document_store = ElasticsearchDocumentStore(hosts=QAPipelineRetrieverExtractor.QABuilder.host,
                                                 verify_certs=False,  # This in insecure
-                                                basic_auth=("elastic", "r9CTnSqSh0uLmxrN7XTV"))
+                                                basic_auth=("elastic", ""))
     retriever = ElasticsearchEmbeddingRetriever(document_store=document_store)
     return document_store, retriever
 
