@@ -27,16 +27,17 @@ if __name__ == "__main__":
     print(dataset)
     train_set = dataset["train"]
     validation_set = dataset["validation"]
-    docs = [Document(content=doc["context"]) for doc in train_set]
+    docs = [Document(content=doc["context"], id=doc["id"]) for doc in train_set]
 
     logger.debug("Done loading dataset")
 
-    document_store, retriever = in_memory_retriever()  # Local storage for document embeddings and associated retriever.
+    document_store, retriever = in_memory_retriever(load=False)  # Local storage for document embeddings and associated retriever.
 
     qa = (QAPipelineRetrieverExtractor.QABuilder()
           .set_docs(docs)
           .set_document_store(document_store)
           .set_retriever(retriever)
+          .set_index_documents(True)
           .build())
 
     logger.debug("Done constructing pipeline")

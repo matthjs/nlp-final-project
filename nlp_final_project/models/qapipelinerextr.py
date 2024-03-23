@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
@@ -6,6 +7,7 @@ from haystack.components.readers import ExtractiveReader
 from haystack.components.retrievers import InMemoryEmbeddingRetriever
 from haystack.components.writers import DocumentWriter
 from haystack.document_stores.in_memory import InMemoryDocumentStore
+from haystack.document_stores.types import DocumentStore
 from haystack_integrations.components.retrievers.elasticsearch import ElasticsearchEmbeddingRetriever
 from haystack_integrations.document_stores.elasticsearch import ElasticsearchDocumentStore
 from loguru import logger
@@ -23,19 +25,26 @@ class QAPipelineRetrieverExtractor(QAPipeline):
     def __init__(self,
                  documents,
                  doc_embedder: SentenceTransformersDocumentEmbedder,
-                 document_store,
+                 document_store: DocumentStore,
                  text_embedder: SentenceTransformersTextEmbedder,
                  retriever,
-                 reader: ExtractiveReader):
-        # indexing pipeline fetches documents, processes it and loads into document store.
-        self.indexing_pipeline = Pipeline()
-        self.indexing_pipeline.add_component("embedder", doc_embedder)
-        # DocumentWriter writes the vectorized documents to the DocumentStore.
-        self.indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="writer")
-        self.indexing_pipeline.connect("embedder.documents", "writer.documents")
-        logger.debug("Running indexing pipeline on documents...")
-        self.indexing_pipeline.run({"documents": documents})
-        logger.debug("Done running index pipeline on documents!")
+                 reader: ExtractiveReader,
+                 index_documents=True):
+        self.indexing_pipeline = None
+
+        if index_documents:    # You do not want to do this if you load the document_store object.
+            # indexing pipeline fetches documents, processes it and loads into document store.
+            self.indexing_pipeline = Pipeline()
+            self.indexing_pipeline.add_component("embedder", doc_embedder)
+            # DocumentWriter writes the vectorized documents to the DocumentStore.
+            self.indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="writer")
+            self.indexing_pipeline.connect("embedder.documents", "writer.documents")
+            logger.debug("Running indexing pipeline on documents...")
+            self.indexing_pipeline.run({"documents": documents})
+            logger.debug("Done running index pipeline on documents!")
+
+            with open("emb.pkl", "wb") as pickle_file:
+                pickle.dump(document_store.to_dict(), pickle_file)
 
         # Extractive QA pipeline consists of an embedder, retriever, and reader.
         self.extractive_qa_pipeline = Pipeline()
@@ -48,7 +57,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         self.extractive_qa_pipeline.connect("retriever.documents", "reader.documents")
 
     def answer_question(self, query: str) -> str:
-        extracted_answer = self.extractive_qa_pipeline.run({"text_embedder": {"text": query}})
+        extracted_answer = self.extractive_qa_pipeline.run({"embedder": {"text": query}, "reader": {"query": query}})
         print(extracted_answer)
         return "DUMMY_STRING"
 
@@ -80,6 +89,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             self.reader.warm_up()
 
             self.docs = None  # Has to be set
+            self.index_documents = True
 
         def set_docs(self, docs):
             self.docs = docs
@@ -106,6 +116,10 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             self.reader = reader
             return self
 
+        def set_index_documents(self, index_documents):
+            self.index_documents = index_documents
+            return self
+
         def build(self):
             if self.document_store is None and self.retriever is None:
                 raise ValueError("Retriever or document store not set")
@@ -120,7 +134,8 @@ class QAPipelineRetrieverExtractor(QAPipeline):
                                                 document_store=self.document_store,
                                                 text_embedder=self.text_embedder,
                                                 retriever=self.retriever,
-                                                reader=self.reader)
+                                                reader=self.reader,
+                                                index_documents=self.index_documents)
 
 
 def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://localhost:9200")):
@@ -132,9 +147,15 @@ def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://
     return document_store, retriever
 
 
-def in_memory_retriever():
+def in_memory_retriever(load=False):
     # Simpler, but less powerful storage for document embeddings.
     logger.debug("Instantiating document store")
-    document_store = InMemoryDocumentStore()
+    if load:
+        with open("emb.pkl", "rb") as f:
+            obj = pickle.load(f)
+        document_store = InMemoryDocumentStore.from_dict(obj)
+    else:
+        document_store = InMemoryDocumentStore()
+
     retriever = InMemoryEmbeddingRetriever(document_store=document_store)
     return document_store, retriever
