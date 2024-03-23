@@ -150,7 +150,7 @@ def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://
 def in_memory_retriever(load=False):
     # Simpler, but less powerful storage for document embeddings.
     logger.debug("Instantiating document store")
-    if load:
+    if load:   # TODO: This loading does not really seem to work.
         with open("emb.pkl", "rb") as f:
             obj = pickle.load(f)
         document_store = InMemoryDocumentStore.from_dict(obj)
