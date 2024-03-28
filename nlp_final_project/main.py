@@ -1,3 +1,5 @@
+import json
+
 import torch
 import torch.nn as nn
 from haystack import Document
@@ -23,11 +25,16 @@ def gpu_test():
 
 if __name__ == "__main__":
     # Load dataset
+    #with open('../data/train-v2.0.json', 'r') as json_file:
+    #    train_set = json.load(json_file)
+
+    #print(train_set)
     dataset = load_dataset("squad")
     print(dataset)
     train_set = dataset["train"]
     validation_set = dataset["validation"]
     docs = [Document(content=doc["context"], id=doc["id"]) for doc in train_set]
+    docs = docs[0:5]
 
     logger.debug("Done loading dataset")
 

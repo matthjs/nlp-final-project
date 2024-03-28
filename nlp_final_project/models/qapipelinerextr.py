@@ -44,7 +44,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             logger.debug("Done running index pipeline on documents!")
 
             with open("emb.pkl", "wb") as pickle_file:
-                pickle.dump(document_store.to_dict(), pickle_file)
+                pickle.dump(document_store, pickle_file)
 
         # Extractive QA pipeline consists of an embedder, retriever, and reader.
         self.extractive_qa_pipeline = Pipeline()
@@ -152,8 +152,7 @@ def in_memory_retriever(load=False):
     logger.debug("Instantiating document store")
     if load:   # TODO: This loading does not really seem to work.
         with open("emb.pkl", "rb") as f:
-            obj = pickle.load(f)
-        document_store = InMemoryDocumentStore.from_dict(obj)
+            document_store = pickle.load(f)
     else:
         document_store = InMemoryDocumentStore()
 
