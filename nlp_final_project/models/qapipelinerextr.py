@@ -85,8 +85,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             # The ExtractiveReader returns answers to that query,
             # as well as their location in the source document, and a confidence score.
             # TODO: ONE CAN FINE_TUNE A READER: https://haystack.deepset.ai/tutorials/02_finetune_a_model_on_your_data
-            self.reader = ExtractiveReader()
-            self.reader.warm_up()
+            self.reader = None
 
             self.docs = None  # Has to be set
             self.index_documents = True

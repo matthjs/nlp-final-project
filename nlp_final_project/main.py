@@ -7,6 +7,7 @@ from datasets import load_dataset
 from loguru import logger
 
 from nlp_final_project.models.qapipelinerextr import QAPipelineRetrieverExtractor, in_memory_retriever
+from nlp_final_project.models.reader import train_qa_transformer
 
 
 def gpu_test():
@@ -24,11 +25,13 @@ def gpu_test():
 
 
 if __name__ == "__main__":
+    train_qa_transformer(train_file="../data/train-v2.0.json", val_file="../data/dev-v2.0.json")
     # Load dataset
     #with open('../data/train-v2.0.json', 'r') as json_file:
     #    train_set = json.load(json_file)
 
     #print(train_set)
+    """
     dataset = load_dataset("squad")
     print(dataset)
     train_set = dataset["train"]
@@ -49,3 +52,4 @@ if __name__ == "__main__":
 
     logger.debug("Done constructing pipeline")
     print(qa.answer_question("What was Beyonc\u00e9's first acting job, in 2006?"))
+    """
