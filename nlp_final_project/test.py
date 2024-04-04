@@ -12,7 +12,7 @@ def main():
     validation_set = dataset["validation"]
 
     # Load pre-trained BERT model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained("distilbert/distilbert-base-uncased")
+    tokenizer = AutoTokenizer.from_pretrained("distilbert/distilbert-base-uncased_trained")
 
     def preprocess_function(examples):
         questions = [q.strip() for q in examples["question"]]
@@ -69,7 +69,7 @@ def main():
     tokenized_train = train_set.map(preprocess_function, batched=True)
     tokenized_val = validation_set.map(preprocess_function, batched=True)
 
-    model = AutoModelForQuestionAnswering.from_pretrained("distilbert/distilbert-base-uncased")
+    model = AutoModelForQuestionAnswering.from_pretrained("distilbert/distilbert-base-uncased_trained")
     data_collator = DefaultDataCollator()
 
     # Define training arguments
