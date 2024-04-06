@@ -1,10 +1,18 @@
+import json
+import os
+import shutil
+import threading
+
 import numpy as np
+import optuna
 import pandas as pd
 from datasets import load_dataset
 from evaluate.visualization import radar_plot
 from haystack.components.readers import ExtractiveReader
 from evaluate import evaluator, QuestionAnsweringEvaluator
+from optuna.multi_objective.trial import MultiObjectiveTrial
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingArguments, Trainer, DefaultDataCollator
+from datasets import disable_caching
 
 """
 
@@ -12,15 +20,16 @@ from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingA
 
 
 class PreProcessor:
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, max_length=384):
         self.tokenizer = tokenizer
+        self.max_length = max_length
 
     def preprocess_function(self, examples):
         questions = [q.strip() for q in examples["question"]]
         inputs = self.tokenizer(
             questions,
             examples["context"],
-            max_length=512,
+            max_length=self.max_length,
             truncation="only_second",
             return_offsets_mapping=True,
             padding="max_length",
@@ -73,17 +82,61 @@ class PreProcessor:
         return inputs
 
 
-def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/distilbert-base-uncased", save=True):
+def hyperparam_tuning(dataset_str="lucadiliello/newsqa", model_str="deepset/roberta-base-squad2-distilled",
+                      data_size=4000):
+    disable_caching()
+    lock = threading.Lock()
+
+    def objective(trial):
+        # learning_rate = trial.suggest_float("learning_rate", 1e-5, 5e-5, log=True)
+        # With 80 I run out of memory on my laptop GPU.
+        per_device_batch_size = trial.suggest_categorical("per_device_batch_size", [16, 32, 64])
+        num_train_epochs = trial.suggest_int("num_train_epochs", 3, 5)
+        max_length = trial.suggest_int("max_length", low=384, high=512, step=128)
+
+        train_transformer(dataset_str=dataset_str,
+                          model_str=model_str,
+                          save=True,
+                          max_length=max_length,
+                          batch_size=per_device_batch_size,
+                          num_train_epochs=num_train_epochs,
+                          max_data_size=data_size,
+                          force_download=True)
+
+        f1_scores = eval_transformer(dataset_str, models_strs=np.array([model_str]), display=False,
+                                     max_length=max_length)
+        with lock:
+            shutil.rmtree(model_str)
+            shutil.rmtree("./logs/" + model_str)  # This is stupid
+        return f1_scores[0]
+
+    study = optuna.create_study(direction="maximize", pruner=optuna.pruners.HyperbandPruner())
+    study.optimize(objective, n_trials=20)  # You can adjust the number of trials
+
+    best_params = study.best_params
+    print("Best hyperparameters:", best_params)
+    # Save best hyperparameters to a file
+    with open("best_hyperparameters.json", "w") as file:
+        json.dump(best_params, file)
+
+
+def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/distilbert-base-uncased", save=True,
+                      max_length=512, learning_rate=2e-5, batch_size=16, num_train_epochs=3, max_data_size=None,
+                      force_download=False):
     # Load the dataset
     dataset = load_dataset(dataset_str)
 
-    train_set = dataset["train"]  # .select(range(100))
-    validation_set = dataset["validation"]  # select(range(100))
+    if max_data_size is None:
+        train_set = dataset["train"]
+        validation_set = dataset["validation"]
+    else:
+        train_set = dataset["train"].select(range(max_data_size))
+        validation_set = dataset["validation"].select(range(max_data_size))
 
     # Load pre-trained BERT model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_str)
 
-    preprocessor = PreProcessor(tokenizer)
+    preprocessor = PreProcessor(tokenizer, max_length)
 
     tokenized_train = train_set.map(preprocessor.preprocess_function, batched=True)
     tokenized_val = validation_set.map(preprocessor.preprocess_function, batched=True)
@@ -95,10 +148,10 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
     training_args = TrainingArguments(
         output_dir=model_str,
         evaluation_strategy="epoch",
-        learning_rate=2e-5,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
-        num_train_epochs=3,
+        learning_rate=learning_rate,
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=batch_size,
+        num_train_epochs=num_train_epochs,
         weight_decay=0.01,
         push_to_hub=False,
         logging_dir="./logs/" + model_str,  # Specify the directory for TensorBoard logs
@@ -129,13 +182,20 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
 def eval_transformer(dataset_str="lucadiliello/newsqa",
                      models_strs=np.array(["distilbert/distilbert-base-uncased_trained",
                                            "deepset/roberta-base-squad2-distilled_trained",
-                                           "VMware/electra-small-mrqa"])):
+                                           "VMware/electra-small-mrqa"]),
+                     display=True,
+                     max_data_size=None,
+                     max_length=384):
     dataset = load_dataset(dataset_str)  # This is a bit eh.
-    validation_set = dataset["validation"]
+
+    if max_data_size is None:
+        validation_set = dataset["validation"]
+    else:
+        validation_set = dataset["validation"].select(range(max_data_size))
 
     # Load pre-trained BERT model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(models_strs[0])
-    preprocessor = PreProcessor(tokenizer)
+    preprocessor = PreProcessor(tokenizer, max_length)
     tokenized_val = validation_set.map(preprocessor.preprocess_function, batched=True)
 
     task_evaluator: QuestionAnsweringEvaluator = evaluator("question-answering")
@@ -152,12 +212,31 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
             squad_v2_format=True
         ))
     df = pd.DataFrame(results, index=models_strs)
+    df.to_csv(dataset_str + ".csv")
 
-    print(results)
+    if display:
+        print(results)
 
-    # This is broken.
-    plot = radar_plot(data=results, model_names=models_strs, invert_range=["latency_in_seconds"])
-    plot.show()
+        # This is broken.
+        # plot = radar_plot(data=results, model_names=models_strs, invert_range=["latency_in_seconds"])
+        # plot.show()
+
+    return [entry['f1'] for entry in results]
+
+
+def test_transformers(models_strs=np.array(["distilbert/distilbert-base-uncased_trained",
+                                            "deepset/roberta-base-squad2-distilled_trained",
+                                            "VMware/electra-small-mrqa"])):
+    """
+    DO NOT TOUCH THIS UNTIL THE END OF TUNING.
+    :param models_strs:
+    :return:
+    """
+    eval_transformer(dataset_str="lucadiliello/textbookqa", models_strs=models_strs)
+    eval_transformer(dataset_str="lucadiliello/dropqa", models_strs=models_strs)
+    eval_transformer(dataset_str="lucadiliello/bioasqqa", models_strs=models_strs)
+    eval_transformer(dataset_str="lucadiliello/raceqa", models_strs=models_strs)
+    eval_transformer(dataset_str="lucadiliello/duorc.paraphrasercqa", models_strs=models_strs)
 
 
 def fine_tuned_reader():

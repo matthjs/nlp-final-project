@@ -46,7 +46,7 @@ def inference(documents: str):
             # Split input into question and context
             question, _, context = user_input.partition(" CONTEXT: ")
             if not context:
-                answer = qa_pipeline.answer_question(question)
+                answer, _ = qa_pipeline.answer_question(question)
             else:
-                answer = qa_pipeline.answer_question(question, context_string=context)
-            print("Answer:", answer)
+                answer, _ = qa_pipeline.answer_question(question, context_string=context)
+            print(answer)

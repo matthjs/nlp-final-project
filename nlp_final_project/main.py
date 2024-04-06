@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from nlp_final_project.models.reader import train_transformer, eval_transformer
+from nlp_final_project.models.reader import train_transformer, eval_transformer, hyperparam_tuning
 from nlp_final_project.util.inference import inference
 
 
@@ -40,14 +40,14 @@ def main():
         inference(sys.argv[2])
     elif command == "test":
         logger.info("Running tests...")
-        eval_transformer()
+        test_transformer()
     elif command == "train":
-        # logger.info("Training model... (baseline)")
-        # train_transformer()
+        logger.info("Training model... (baseline)")
+        train_transformer()
         logger.info("Training model...")
         train_transformer(model_str="deepset/roberta-base-squad2-distilled")
     elif command == "eval":
-        logger.info("Evaluating model...")
+        logger.info("Evaluating models...")
         eval_transformer()
     else:
         logger.info("Invalid command. Please use 'inference', 'test', 'train', or 'eval'.")

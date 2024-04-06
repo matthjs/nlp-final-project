@@ -31,6 +31,7 @@ transformers = {extras = ["sentencepiece", "torch"], version = "^4.39.1"}
 evaluate = "^0.4.1"
 tensorboard = "^2.16.2"
 wandb = "^0.16.6"
+optuna = "^3.6.1"
 
 
 [build-system]

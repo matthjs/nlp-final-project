@@ -1,7 +1,7 @@
 import os
 import pickle
 
-from haystack import Pipeline, Document
+from haystack import Pipeline, Document, ExtractedAnswer
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
 from haystack.components.readers import ExtractiveReader
 from haystack.components.retrievers import InMemoryEmbeddingRetriever
@@ -13,6 +13,11 @@ from haystack_integrations.document_stores.elasticsearch import ElasticsearchDoc
 from loguru import logger
 
 from nlp_final_project.models.qapipeline import QAPipeline
+
+
+def simplify_prediction_output(prediction: dict) -> str:
+    return "\n".join([f"Question: {answer.query}\nConfidence: {answer.score}\nAnswer: {answer.data}\n" \
+                      for answer in prediction['answers'] if answer.data is not None])
 
 
 class QAPipelineRetrieverExtractor(QAPipeline):
@@ -55,16 +60,16 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         self.extractive_qa_pipeline.connect("embedder.embedding", "retriever.query_embedding")
         self.extractive_qa_pipeline.connect("retriever.documents", "reader.documents")
 
-    def answer_question(self, query: str, context_string: str = None) -> str:
+    def answer_question(self, query: str, context_string: str = None) -> tuple:
         if context_string is not None:
             return self.answer_question_with_context(query, context_string)
 
         logger.debug("No context_string provided, performing information retrieval on stored documents...")
 
         prediction = self.extractive_qa_pipeline.run({"embedder": {"text": query}, "reader": {"query": query}})
-        return prediction    # print_answers(prediction, details="minimum")
+        return simplify_prediction_output(prediction), prediction
 
-    def answer_question_with_context(self, query: str, context_string: str) -> str:
+    def answer_question_with_context(self, query: str, context_string: str) -> tuple:
         """
         Run the text embedder on the provided context string and then run the reader on the query and the context string.
 
@@ -83,8 +88,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             query=query,
             documents=[Document(content=context_string)])
 
-        return prediction
-
+        return simplify_prediction_output(prediction), prediction
 
     class QABuilder:
         """
