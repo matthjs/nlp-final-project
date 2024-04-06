@@ -1,7 +1,7 @@
 import os
 import pickle
 
-from haystack import Pipeline
+from haystack import Pipeline, Document
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
 from haystack.components.readers import ExtractiveReader
 from haystack.components.retrievers import InMemoryEmbeddingRetriever
@@ -30,15 +30,14 @@ class QAPipelineRetrieverExtractor(QAPipeline):
                  retriever,
                  reader: ExtractiveReader,
                  index_documents=True):
-        self.indexing_pipeline = None
+        # indexing pipeline fetches documents, processes it and loads into document store.
+        self.indexing_pipeline = Pipeline()
+        self.indexing_pipeline.add_component("embedder", doc_embedder)
+        # DocumentWriter writes the vectorized documents to the DocumentStore.
+        self.indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="writer")
+        self.indexing_pipeline.connect("embedder.documents", "writer.documents")
 
         if index_documents:    # You do not want to do this if you load the document_store object.
-            # indexing pipeline fetches documents, processes it and loads into document store.
-            self.indexing_pipeline = Pipeline()
-            self.indexing_pipeline.add_component("embedder", doc_embedder)
-            # DocumentWriter writes the vectorized documents to the DocumentStore.
-            self.indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="writer")
-            self.indexing_pipeline.connect("embedder.documents", "writer.documents")
             logger.debug("Running indexing pipeline on documents...")
             self.indexing_pipeline.run({"documents": documents})
             logger.debug("Done running index pipeline on documents!")
@@ -56,10 +55,36 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         self.extractive_qa_pipeline.connect("embedder.embedding", "retriever.query_embedding")
         self.extractive_qa_pipeline.connect("retriever.documents", "reader.documents")
 
-    def answer_question(self, query: str) -> str:
-        extracted_answer = self.extractive_qa_pipeline.run({"embedder": {"text": query}, "reader": {"query": query}})
-        print(extracted_answer)
-        return "DUMMY_STRING"
+    def answer_question(self, query: str, context_string: str = None) -> str:
+        if context_string is not None:
+            return self.answer_question_with_context(query, context_string)
+
+        logger.debug("No context_string provided, performing information retrieval on stored documents...")
+
+        prediction = self.extractive_qa_pipeline.run({"embedder": {"text": query}, "reader": {"query": query}})
+        return prediction    # print_answers(prediction, details="minimum")
+
+    def answer_question_with_context(self, query: str, context_string: str) -> str:
+        """
+        Run the text embedder on the provided context string and then run the reader on the query and the context string.
+
+        Args:
+            query (str): The query for which the answer is sought.
+            context_string (str): The context string to be used for answering the question.
+
+        Returns:
+            str: The answer to the given query within the provided context string.
+        """
+        # Run text embedder on the context string
+        # context_embedding = self.extractive_qa_pipeline.get_component("embedder").run(context_string)
+
+        # Run reader on the query and the context string
+        prediction = self.extractive_qa_pipeline.get_component("reader").run(
+            query=query,
+            documents=[Document(content=context_string)])
+
+        return prediction
+
 
     class QABuilder:
         """
@@ -79,12 +104,12 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             # Reading part.
             # Creates an embedding for user query.
             self.text_embedder = SentenceTransformersTextEmbedder(model=self.model)
+            self.text_embedder.warm_up()
             # This will get the relevant documents to the query.
             self.retriever = None
 
             # The ExtractiveReader returns answers to that query,
             # as well as their location in the source document, and a confidence score.
-            # TODO: ONE CAN FINE_TUNE A READER: https://haystack.deepset.ai/tutorials/02_finetune_a_model_on_your_data
             self.reader = None
 
             self.docs = None  # Has to be set
@@ -149,11 +174,16 @@ def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://
 def in_memory_retriever(load=False):
     # Simpler, but less powerful storage for document embeddings.
     logger.debug("Instantiating document store")
-    if load:   # TODO: This loading does not really seem to work.
-        with open("emb.pkl", "rb") as f:
-            document_store = pickle.load(f)
-    else:
-        document_store = InMemoryDocumentStore()
+    try:
+        if load:
+            with open("emb.pkl", "rb") as f:
+                document_store = pickle.load(f)
+            retriever = InMemoryEmbeddingRetriever(document_store=document_store)
+            return True, document_store, retriever
+    except FileNotFoundError:
+        logger.warning("File 'emb.pkl' not found.")
+        pass
 
+    document_store = InMemoryDocumentStore()
     retriever = InMemoryEmbeddingRetriever(document_store=document_store)
-    return document_store, retriever
+    return False, document_store, retriever

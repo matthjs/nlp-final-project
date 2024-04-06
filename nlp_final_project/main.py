@@ -1,13 +1,11 @@
-import json
-
 import torch
 import torch.nn as nn
-from haystack import Document
-from datasets import load_dataset
+import sys
+
 from loguru import logger
 
-from nlp_final_project.models.qapipelinerextr import QAPipelineRetrieverExtractor, in_memory_retriever
-from nlp_final_project.models.reader import train_qa_transformer
+from nlp_final_project.models.reader import train_transformer, eval_transformer
+from nlp_final_project.util.inference import inference
 
 
 def gpu_test():
@@ -24,32 +22,36 @@ def gpu_test():
     print("Output:", output.item())
 
 
+def main():
+    # Check if the correct number of arguments are provided
+    if len(sys.argv) < 2:
+        logger.info("Usage: python script.py <command>")
+        return
+
+    # Extract the command-line argument
+    command = sys.argv[1]
+
+    # Perform actions based on the command
+    if command == "inference":
+        logger.info("Performing inference...")
+        if len(sys.argv) != 3:
+            logger.info("documents string not specified.")
+        # Call function to perform inference
+        inference(sys.argv[2])
+    elif command == "test":
+        logger.info("Running tests...")
+        eval_transformer()
+    elif command == "train":
+        # logger.info("Training model... (baseline)")
+        # train_transformer()
+        logger.info("Training model...")
+        train_transformer(model_str="deepset/roberta-base-squad2-distilled")
+    elif command == "eval":
+        logger.info("Evaluating model...")
+        eval_transformer()
+    else:
+        logger.info("Invalid command. Please use 'inference', 'test', 'train', or 'eval'.")
+
+
 if __name__ == "__main__":
-    train_qa_transformer(train_file="../data/train-v2.0.json", val_file="../data/dev-v2.0.json")
-    # Load dataset
-    #with open('../data/train-v2.0.json', 'r') as json_file:
-    #    train_set = json.load(json_file)
-
-    #print(train_set)
-    """
-    dataset = load_dataset("squad")
-    print(dataset)
-    train_set = dataset["train"]
-    validation_set = dataset["validation"]
-    docs = [Document(content=doc["context"], id=doc["id"]) for doc in train_set]
-    docs = docs[0:5]
-
-    logger.debug("Done loading dataset")
-
-    document_store, retriever = in_memory_retriever(load=False)  # Local storage for document embeddings and associated retriever.
-
-    qa = (QAPipelineRetrieverExtractor.QABuilder()
-          .set_docs(docs)
-          .set_document_store(document_store)
-          .set_retriever(retriever)
-          .set_index_documents(True)
-          .build())
-
-    logger.debug("Done constructing pipeline")
-    print(qa.answer_question("What was Beyonc\u00e9's first acting job, in 2006?"))
-    """
+    main()

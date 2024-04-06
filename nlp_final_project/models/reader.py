@@ -1,106 +1,15 @@
-import json
-
+import numpy as np
 import pandas as pd
-from datasets import Dataset, load_dataset, load_metric
+from datasets import load_dataset
 from evaluate.visualization import radar_plot
 from haystack.components.readers import ExtractiveReader
-from loguru import logger
-from matplotlib import pyplot as plt
-from torch.optim import Adam
-from evaluate import load, evaluator, QuestionAnsweringEvaluator
-from torch.utils.tensorboard import SummaryWriter
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingArguments, Trainer, \
-    BertForQuestionAnswering, BertConfig, BertTokenizer, AdamW, DefaultDataCollator, training_args, TrainerCallback
+from evaluate import evaluator, QuestionAnsweringEvaluator
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, TrainingArguments, Trainer, DefaultDataCollator
 
 """
-WARNING: THIS IS A FUCKING MESS AND NEEDS TO BE CLEANED UP
+
 """
 
-
-def load_json_dataset(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data
-
-def load_datasets(train_file, val_file):
-    # Load the dataset from JSON or JSONL file
-    train_data = load_json_dataset(train_file)
-    val_data = load_json_dataset(val_file)
-
-    # Convert the data to Dataset format
-    train_dataset = Dataset.from_dict(train_data)
-    val_dataset = Dataset.from_dict(val_data)
-
-    print(train_dataset)
-
-def train_baseline_transformer(train_file, val_file=None, num_epochs=10):
-    logger.debug("Training baseline")
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    config = BertConfig()
-    model = BertForQuestionAnswering(config=config)
-    logger.debug("Done instantiating model")
-
-    # Define Training Parameters
-    training_args = TrainingArguments(
-        output_dir="./base-results",
-        num_train_epochs=10,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
-        warmup_steps=500,
-        weight_decay=0.01,
-        logging_dir="./logs",
-    )
-
-    # Fine-tuning
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_file,
-        eval_dataset=val_file,
-        tokenizer=tokenizer
-        #optimizers=AdamW(params=model.parameters(), lr=1e-3)
-    )
-    trainer.train()
-
-    # Evaluation
-    trainer.evaluate()
-
-    # Save the Model
-    model.save_pretrained("baseline")
-    logger.debug("training baseline done")
-
-
-def train_qa_transformer(train_file, val_file=None, num_epochs=10, base="deepset/roberta-base-squad2-distilled"):
-    tokenizer = AutoTokenizer.from_pretrained(base)
-    model = AutoModelForQuestionAnswering.from_pretrained(base)
-
-    # Define Training Parameters
-    training_args = TrainingArguments(
-        output_dir="./finetuned_results",
-        num_train_epochs=3,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
-        warmup_steps=500,
-        weight_decay=0.01,
-        logging_dir="./logs",
-    )
-
-    # Fine-tuning
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_file,
-        eval_dataset=val_file,
-        tokenizer=tokenizer,
-        optimizers=(AdamW(params=model.parameters(), lr=1e-3), None)
-    )
-    trainer.train()
-
-    # Evaluation
-    trainer.evaluate()
-
-    # Save the Model
-    model.save_pretrained("fine_tuned_roberta_base_squad2")
 
 class PreProcessor:
     def __init__(self, tokenizer):
@@ -111,7 +20,7 @@ class PreProcessor:
         inputs = self.tokenizer(
             questions,
             examples["context"],
-            max_length=384,
+            max_length=512,
             truncation="only_second",
             return_offsets_mapping=True,
             padding="max_length",
@@ -134,16 +43,6 @@ class PreProcessor:
             # huggingface for question answering tasks assumes squad like format.
             # Generate predictions in the required format
             examples["answers"].append({"text": text_answers[i], "answer_start": [start_char]})
-
-            # Generate predictions in the required format
-            # prediction_text = text_answers[i] if label else ""
-            # no_answer_probability = 0.0 if not label else 1.0
-
-            # examples["answers"].append({
-            #     "id": examples["key"][i],
-            #     "prediction_text": prediction_text,
-            #     "no_answer_probability": no_answer_probability
-            # })
 
             idx = 0
             while sequence_ids[idx] != 1:
@@ -178,8 +77,8 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
     # Load the dataset
     dataset = load_dataset(dataset_str)
 
-    train_set = dataset["train"] #.select(range(100))
-    validation_set = dataset["validation"] #select(range(100))
+    train_set = dataset["train"]  # .select(range(100))
+    validation_set = dataset["validation"]  # select(range(100))
 
     # Load pre-trained BERT model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_str)
@@ -226,8 +125,12 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
 
     return tokenized_val
 
-def eval_transformer(dataset_str="lucadiliello/newsqa", models_strs=["distilbert/distilbert-base-uncased_trained", "deepset/roberta-base-squad2-distilled_trained"]):
-    dataset = load_dataset(dataset_str)    # This is a bit eh.
+
+def eval_transformer(dataset_str="lucadiliello/newsqa",
+                     models_strs=np.array(["distilbert/distilbert-base-uncased_trained",
+                                           "deepset/roberta-base-squad2-distilled_trained",
+                                           "VMware/electra-small-mrqa"])):
+    dataset = load_dataset(dataset_str)  # This is a bit eh.
     validation_set = dataset["validation"]
 
     # Load pre-trained BERT model and tokenizer
@@ -252,11 +155,13 @@ def eval_transformer(dataset_str="lucadiliello/newsqa", models_strs=["distilbert
 
     print(results)
 
+    # This is broken.
     plot = radar_plot(data=results, model_names=models_strs, invert_range=["latency_in_seconds"])
     plot.show()
 
+
 def fine_tuned_reader():
-    reader = ExtractiveReader()
+    reader = ExtractiveReader("deepset/roberta-base-squad2-distilled_trained")
 
     reader.warm_up()
     return reader

@@ -1,0 +1,6 @@
+[{'exact': 42.68755935422602, 'f1': 55.17275673361186, 'total': 4212, 'HasAns_exact': 42.68755935422602, 'HasAns_f1': 55.17275673361186, 'HasAns_total': 4212, 'best_exact': 42.687559354226
+02, 'best_exact_thresh': 0.9996227025985718, 'best_f1': 55.17275673361194, 'best_f1_thresh': 0.9996227025985718, 'total_time_in_seconds': 116.57806004300073, 'samples_per_second': 36.13029
+757440097, 'latency_in_seconds': 0.027677602099477856}, {'exact': 52.30294396961064, 'f1': 66.30266553841844, 'total': 4212, 'HasAns_exact': 52.30294396961064, 'HasAns_f1': 66.302665538418
+44, 'HasAns_total': 4212, 'best_exact': 52.30294396961064, 'best_exact_thresh': 0.9997060298919678, 'best_f1': 66.30266553841854, 'best_f1_thresh': 0.9997060298919678, 'total_time_in_secon
+ds': 207.86575589800032, 'samples_per_second': 20.26307787833426, 'latency_in_seconds': 0.049350844230294476}, {'exact': 41.547958214624884, 'f1': 56.503761870078314, 'total': 4212, 'HasAn
+s_exact': 41.547958214624884, 'HasAns_f1': 56.503761870078314, 'HasAns_total': 4212, 'best_exact': 41.547958214624884, 'best_exact_thresh': 0.9869721531867981, 'best_f1': 56.5037618700784, 'best_f1_thresh': 0.9869721531867981, 'total_time_in_seconds': 178.8895066240002, 'samples_per_second': 23.545260308940385, 'latency_in_seconds': 0.04247139283570755}]
