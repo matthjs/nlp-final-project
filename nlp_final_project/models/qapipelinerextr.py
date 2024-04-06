@@ -1,5 +1,6 @@
 import os
 import pickle
+from typing import Tuple
 
 from haystack import Pipeline, Document, ExtractedAnswer
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
@@ -16,25 +17,40 @@ from nlp_final_project.models.qapipeline import QAPipeline
 
 
 def simplify_prediction_output(prediction: dict) -> str:
-    return "\n".join([f"Question: {answer.query}\nConfidence: {answer.score}\nAnswer: {answer.data}\n" \
+    """
+    Simplify the prediction output into a human-readable string.
+
+    :param prediction: The prediction dictionary containing answers.
+    :return: Human-readable string containing question, confidence, and answer.
+    """
+    return "\n".join([f"Question: {answer.query}\nConfidence: {round(answer.score, 2)}\nAnswer: {answer.data}\n" \
                       for answer in prediction['answers'] if answer.data is not None])
 
 
 class QAPipelineRetrieverExtractor(QAPipeline):
     """
     Retriever Extractor QA system.
-    https://haystack.deepset.ai/tutorials/34_extractive_qa_pipeline
-    Note that there might actually be some prebuilt pipelines (ExtractiveQAPipeline).
     """
 
     def __init__(self,
-                 documents,
+                 documents: list[Document],
                  doc_embedder: SentenceTransformersDocumentEmbedder,
                  document_store: DocumentStore,
                  text_embedder: SentenceTransformersTextEmbedder,
-                 retriever,
+                 retriever: ExtractiveReader,
                  reader: ExtractiveReader,
                  index_documents=True):
+        """
+        Initialize the QAPipelineRetrieverExtractor.
+
+        :param documents: List of documents to be indexed.
+        :param doc_embedder: Document embedder instance.
+        :param document_store: Document store to index documents.
+        :param text_embedder: Text embedder instance.
+        :param retriever: Retriever instance.
+        :param reader: Extractive reader instance.
+        :param index_documents: Whether to index documents on initialization. Defaults to True.
+        """
         # indexing pipeline fetches documents, processes it and loads into document store.
         self.indexing_pipeline = Pipeline()
         self.indexing_pipeline.add_component("embedder", doc_embedder)
@@ -60,7 +76,14 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         self.extractive_qa_pipeline.connect("embedder.embedding", "retriever.query_embedding")
         self.extractive_qa_pipeline.connect("retriever.documents", "reader.documents")
 
-    def answer_question(self, query: str, context_string: str = None) -> tuple:
+    def answer_question(self, query: str, context_string: str = None) -> Tuple[str, dict]:
+        """
+        Answer a question either with or without context string.
+
+        :param query: The question to be answered.
+        :param context_string: The context string (optional).
+        :return: Answer to the question and prediction dictionary.
+        """
         if context_string is not None:
             return self.answer_question_with_context(query, context_string)
 
@@ -69,19 +92,14 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         prediction = self.extractive_qa_pipeline.run({"embedder": {"text": query}, "reader": {"query": query}})
         return simplify_prediction_output(prediction), prediction
 
-    def answer_question_with_context(self, query: str, context_string: str) -> tuple:
+    def answer_question_with_context(self, query: str, context_string: str) -> Tuple[str, dict]:
         """
-        Run the text embedder on the provided context string and then run the reader on the query and the context string.
+        Answer a question with provided context string.
 
-        Args:
-            query (str): The query for which the answer is sought.
-            context_string (str): The context string to be used for answering the question.
-
-        Returns:
-            str: The answer to the given query within the provided context string.
+        :param query: The question to be answered.
+        :param context_string: The context string for answering the question.
+        :return: Answer to the question and prediction dictionary.
         """
-        # Run text embedder on the context string
-        # context_embedding = self.extractive_qa_pipeline.get_component("embedder").run(context_string)
 
         # Run reader on the query and the context string
         prediction = self.extractive_qa_pipeline.get_component("reader").run(
@@ -92,7 +110,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
 
     class QABuilder:
         """
-        Helper class to create model.
+        Helper class to build QAPipelineRetrieverExtractor.
         """
 
         def __init__(self):
@@ -101,13 +119,13 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             self.document_store = None
 
             # Transforms each document into a vector
-            self.model = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
-            self.doc_embedder = SentenceTransformersDocumentEmbedder(model=self.model)
+            self.embedding_model = "sentence-transformers/multi-qa-mpnet-base-dot-v1"
+            self.doc_embedder = SentenceTransformersDocumentEmbedder(model=self.embedding_model)
             self.doc_embedder.warm_up()
 
             # Reading part.
             # Creates an embedding for user query.
-            self.text_embedder = SentenceTransformersTextEmbedder(model=self.model)
+            self.text_embedder = SentenceTransformersTextEmbedder(model=self.embedding_model)
             self.text_embedder.warm_up()
             # This will get the relevant documents to the query.
             self.retriever = None
@@ -119,41 +137,90 @@ class QAPipelineRetrieverExtractor(QAPipeline):
             self.docs = None  # Has to be set
             self.index_documents = True
 
-        def set_docs(self, docs):
+        def set_docs(self, docs: list[Document]) -> 'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set documents for indexing.
+
+            :param docs: List of documents.
+            :return: Builder instance.
+            """
             self.docs = docs
             return self
 
-        def set_docs_embedder(self, doc_embedder):
+        def set_docs_embedder(self, doc_embedder: SentenceTransformersDocumentEmbedder) -> \
+                'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set document embedder.
+
+            :param doc_embedder: Document embedder instance.
+            :return: Builder instance.
+            """
             doc_embedder.warm_up()
             self.doc_embedder = doc_embedder
             return self
 
-        def set_text_embedder(self, text_embedder):
+        def set_text_embedder(self, text_embedder: SentenceTransformersTextEmbedder) -> \
+                'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set text embedder.
+
+            :param text_embedder: Text embedder instance.
+            :return: Builder instance.
+            """
             self.text_embedder = text_embedder
             return self
 
-        def set_document_store(self, document_store):
+        def set_document_store(self, document_store: DocumentStore) -> 'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set document store.
+
+            :param document_store: Document store instance.
+            :return: Builder instance.
+            """
             self.document_store = document_store
             return self
 
-        def set_retriever(self, retriever):
+        def set_retriever(self, retriever: ExtractiveReader) -> 'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set retriever.
+
+            :param retriever: Retriever instance.
+            :return: Builder instance.
+            """
             self.retriever = retriever
             return self
 
-        def set_reader(self, reader):
+        def set_reader(self, reader: ExtractiveReader) -> 'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set reader.
+
+            :param reader: Extractive reader instance.
+            :return: Builder instance.
+            """
             self.reader = reader
             return self
 
-        def set_index_documents(self, index_documents):
+        def set_index_documents(self, index_documents: bool) -> 'QAPipelineRetrieverExtractor.QABuilder':
+            """
+            Set whether to index documents.
+
+            :param index_documents: Whether to index documents.
+            :return: Builder instance.
+            """
             self.index_documents = index_documents
             return self
 
-        def build(self):
-            if self.document_store is None and self.retriever is None:
-                raise ValueError("Retriever or document store not set")
+        def build(self) -> 'QAPipelineRetrieverExtractor':
+            """
+            Build QAPipelineRetrieverExtractor instance.
+            :return: QAPipelineRetrieverExtractor.
+            """
+            if self.index_documents is True:
+                if self.document_store is None and self.retriever is None:
+                    raise ValueError("Retriever or document store not set")
 
-            if self.docs is None:
-                raise ValueError("No documents set")
+                if self.docs is None:
+                    raise ValueError("No documents set")
 
             logger.debug("Running QAPipeline constructor.")
 
@@ -175,7 +242,13 @@ def elastic_search_retriever(host=os.environ.get("ELASTICSEARCH_HOST", "https://
     return document_store, retriever
 
 
-def in_memory_retriever(load=False):
+def in_memory_retriever(load=False) -> tuple:
+    """
+    Retrieve documents using in-memory storage.
+
+    :param load: Whether to load from file. Defaults to False.
+    :return: Tuple containing whether loaded from file, DocumentStore, and retriever instances.
+    """
     # Simpler, but less powerful storage for document embeddings.
     logger.debug("Instantiating document store")
     try:

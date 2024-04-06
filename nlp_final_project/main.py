@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from nlp_final_project.models.reader import train_transformer, eval_transformer, hyperparam_tuning
+from nlp_final_project.models.reader import train_transformer, eval_transformer, hyperparam_tuning, test_transformer
 from nlp_final_project.util.inference import inference
 
 
@@ -35,9 +35,10 @@ def main():
     if command == "inference":
         logger.info("Performing inference...")
         if len(sys.argv) != 3:
-            logger.info("documents string not specified.")
-        # Call function to perform inference
-        inference(sys.argv[2])
+            inference()
+        else:
+            # Call function to perform inference
+            inference(sys.argv[2])
     elif command == "test":
         logger.info("Running tests...")
         test_transformer()
