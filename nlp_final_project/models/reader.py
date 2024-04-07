@@ -28,28 +28,35 @@ def fixed_grid_search(dataset_str="lucadiliello/newsqa", model_str="deepset/robe
     """
     num_epochs = [1, 2, 3, 5, 7]
 
-    f1_scores = []
+    f1_scores_run = []
 
     for num_train_epochs in num_epochs:
         train_transformer(dataset_str=dataset_str,
                           model_str=model_str,
                           max_data_size=data_size,
-                          save=False,
+                          save=True,
                           num_train_epochs=num_train_epochs)
 
         f1_scores, em_scores = eval_transformer(dataset_str=dataset_str,
-                                                model_strs=[model_str])
-        f1_scores.append(f1_scores[0])
+                                                models_strs=np.array([model_str]),
+                                                max_data_size=data_size)
+        # This is stupid
+        shutil.rmtree(model_str)
+        shutil.rmtree("./logs/" + model_str)
+        f1_scores_run.append(f1_scores[0])
 
     # Find the best F1 score and corresponding number of epochs
-    best_f1_score = max(f1_scores)
-    best_num_epochs = num_epochs[f1_scores.index(best_f1_score)]
+    best_f1_score = max(f1_scores_run)
+    best_num_epochs = num_epochs[f1_scores_run.index(best_f1_score)]
 
     print("Best number of epochs:", best_num_epochs)
     print("Best F1 score:", best_f1_score)
 
+    print(num_epochs)
+    print(f1_scores_run)
+
     # Plot the results
-    plt.plot(num_epochs, f1_scores, marker='o')
+    plt.plot(num_epochs, f1_scores_run, marker='o')
     plt.title("F1 Score vs Number of Epochs")
     plt.xlabel("Number of Epochs")
     plt.ylabel("F1 Score")
@@ -57,7 +64,7 @@ def fixed_grid_search(dataset_str="lucadiliello/newsqa", model_str="deepset/robe
     plt.savefig("f1_score_vs_epochs.png")
 
     # Save the results to a CSV file
-    results_dict = {"Number of Epochs": num_epochs, "F1 Score": f1_scores}
+    results_dict = {"Number of Epochs": num_epochs, "F1 Score": f1_scores_run}
     results_df = pd.DataFrame(results_dict)
     results_df.to_csv("f1_score_vs_epochs.csv", index=False)
 
@@ -94,8 +101,7 @@ def hyperparam_tuning(dataset_str="lucadiliello/newsqa", model_str="deepset/robe
                           max_length=max_length,
                           batch_size=per_device_batch_size,
                           num_train_epochs=num_train_epochs,
-                          max_data_size=data_size,
-                          force_download=True)
+                          max_data_size=data_size)
 
         f1_scores, _ = eval_transformer(dataset_str, models_strs=np.array([model_str]), display=False,
                                         max_length=max_length)
@@ -187,10 +193,10 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
 
 
 def eval_transformer(dataset_str="lucadiliello/newsqa",
-                     models_strs=np.array(["distilbert/distilbert-base-uncased_trained",
-                                           "deepset/roberta-base-squad2-distilled_trained",
+                     models_strs=np.array(["distilbert/distilbert-base-uncased_final",
+                                           "deepset/roberta-base-squad2-distilled_final",
                                            "VMware/electra-small-mrqa"]),
-                     display=True,
+                     display=False,
                      max_data_size=None,
                      max_length=512):    # This is a bit eh.
     """
@@ -230,8 +236,10 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
             # n_resamples=3,
             squad_v2_format=True
         ))
-    df = pd.DataFrame(results, index=models_strs)
-    df.to_csv(dataset_str + ".csv")
+    # df = pd.DataFrame(results, index=models_strs)
+    # df.to_csv(dataset_str + ".csv")
+
+    print(results)
 
     if display:
         print(results)
@@ -243,7 +251,8 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
     return [entry['f1'] for entry in results], [entry['exact'] for entry in results]
 
 
-def test_transformer(models_strs=np.array(["distilbert/distilbert-base-uncased_trained",
+def test_transformer(models_strs=np.array(["distilbert/distilbert-base-uncased_final",
+                                           "deepset/roberta-base-squad2-distilled_final",
                                            "deepset/roberta-base-squad2-distilled_trained",
                                            "VMware/electra-small-mrqa"])):
     """
@@ -264,7 +273,7 @@ def test_transformer(models_strs=np.array(["distilbert/distilbert-base-uncased_t
     eval_transformer(dataset_str="lucadiliello/duorc.paraphrasercqa", models_strs=models_strs)
 
 
-def fine_tuned_reader(model_str="deepset/roberta-base-squad2-distilled_trained"):
+def fine_tuned_reader(model_str="deepset/roberta-base-squad2-distilled_final"):
     """
     Initialize a fine-tuned Question Answering BERT reader.
 

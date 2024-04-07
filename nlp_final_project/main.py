@@ -43,8 +43,8 @@ def main():
         logger.info("Running tests...")
         test_transformer()
     elif command == "train":
-        logger.info("Training model... (baseline)")
-        train_transformer()
+        # logger.info("Training model... (baseline)")
+        # train_transformer()
         logger.info("Training model...")
         train_transformer(model_str="deepset/roberta-base-squad2-distilled")
     elif command == "eval":

@@ -1,0 +1,37 @@
+Map: 100%|█████████████████████████████████████████████████████████████████| 4212/4212 [00:02<00:00, 1708.48 examples/s]
+/home/matthijs/programming/nlp-final-project/.venv/lib/python3.10/site-packages/accelerate/accelerator.py:432: FutureWarning: Passing the following arguments to `Accelerator` is deprecated and will be removed in version 1.0 of Accelerate: dict_keys(['dispatch_batches', 'split_batches', 'even_batches', 'use_seedable_sampler']). Please pass an `accelerate.DataLoaderConfiguration` instead:
+dataloader_config = DataLoaderConfiguration(dispatch_batches=None, split_batches=False, even_batches=True, use_seedable_sampler=True)
+  warnings.warn(
+{'loss': 1.6875, 'grad_norm': 32.70499801635742, 'learning_rate': 1.9280834232290546e-05, 'epoch': 0.11}
+{'loss': 1.5649, 'grad_norm': 19.835559844970703, 'learning_rate': 1.856166846458109e-05, 'epoch': 0.22}
+{'loss': 1.5231, 'grad_norm': 48.614620208740234, 'learning_rate': 1.784250269687163e-05, 'epoch': 0.32}
+{'loss': 1.4572, 'grad_norm': 39.591426849365234, 'learning_rate': 1.7123336929162174e-05, 'epoch': 0.43}
+{'loss': 1.4575, 'grad_norm': 27.007734298706055, 'learning_rate': 1.6404171161452715e-05, 'epoch': 0.54}
+{'loss': 1.4146, 'grad_norm': 42.48084259033203, 'learning_rate': 1.568500539374326e-05, 'epoch': 0.65}
+{'loss': 1.4017, 'grad_norm': 27.580352783203125, 'learning_rate': 1.4965839626033803e-05, 'epoch': 0.76}
+{'loss': 1.362, 'grad_norm': 17.087228775024414, 'learning_rate': 1.4246673858324345e-05, 'epoch': 0.86}
+{'loss': 1.3508, 'grad_norm': 21.56340789794922, 'learning_rate': 1.3527508090614887e-05, 'epoch': 0.97}
+{'eval_loss': 1.3268249034881592, 'eval_runtime': 68.176, 'eval_samples_per_second': 61.781, 'eval_steps_per_second': 3.872, 'epoch': 1.0}
+{'loss': 1.1526, 'grad_norm': 37.53128433227539, 'learning_rate': 1.2808342322905431e-05, 'epoch': 1.08}
+{'loss': 1.0948, 'grad_norm': 23.292490005493164, 'learning_rate': 1.2089176555195974e-05, 'epoch': 1.19}
+{'loss': 1.0783, 'grad_norm': 20.37655258178711, 'learning_rate': 1.1370010787486516e-05, 'epoch': 1.29}
+{'loss': 1.0764, 'grad_norm': 35.25703048706055, 'learning_rate': 1.0650845019777058e-05, 'epoch': 1.4}
+{'loss': 1.0817, 'grad_norm': 26.346818923950195, 'learning_rate': 9.931679252067602e-06, 'epoch': 1.51}
+{'loss': 1.0882, 'grad_norm': 21.868677139282227, 'learning_rate': 9.212513484358145e-06, 'epoch': 1.62}
+{'loss': 1.0484, 'grad_norm': 26.096261978149414, 'learning_rate': 8.493347716648687e-06, 'epoch': 1.73}
+{'loss': 1.0759, 'grad_norm': 20.06927490234375, 'learning_rate': 7.774181948939231e-06, 'epoch': 1.83}
+{'loss': 1.069, 'grad_norm': 22.019193649291992, 'learning_rate': 7.055016181229773e-06, 'epoch': 1.94}
+{'eval_loss': 1.347033977508545, 'eval_runtime': 67.9294, 'eval_samples_per_second': 62.006, 'eval_steps_per_second': 3.886, 'epoch': 2.0}
+{'loss': 0.9683, 'grad_norm': 17.63115692138672, 'learning_rate': 6.335850413520317e-06, 'epoch': 2.05}
+{'loss': 0.8329, 'grad_norm': 30.20131492614746, 'learning_rate': 5.6166846458108604e-06, 'epoch': 2.16}
+{'loss': 0.8835, 'grad_norm': 29.199432373046875, 'learning_rate': 4.897518878101403e-06, 'epoch': 2.27}
+{'loss': 0.8368, 'grad_norm': 15.08745288848877, 'learning_rate': 4.178353110391946e-06, 'epoch': 2.37}
+{'loss': 0.8556, 'grad_norm': 17.954477310180664, 'learning_rate': 3.4591873426824886e-06, 'epoch': 2.48}
+{'loss': 0.8366, 'grad_norm': 16.764636993408203, 'learning_rate': 2.7400215749730314e-06, 'epoch': 2.59}
+{'loss': 0.7927, 'grad_norm': 22.368160247802734, 'learning_rate': 2.0208558072635745e-06, 'epoch': 2.7}
+{'loss': 0.8141, 'grad_norm': 17.47014808654785, 'learning_rate': 1.3016900395541175e-06, 'epoch': 2.8}
+{'loss': 0.8167, 'grad_norm': 22.038265228271484, 'learning_rate': 5.825242718446603e-07, 'epoch': 2.91}
+{'eval_loss': 1.4007868766784668, 'eval_runtime': 67.4402, 'eval_samples_per_second': 62.455, 'eval_steps_per_second': 3.915, 'epoch': 3.0}
+{'train_runtime': 10894.9801, 'train_samples_per_second': 20.42, 'train_steps_per_second': 1.276, 'train_loss': 1.1258922128358448, 'epoch': 3.0}
+100%|███████████████████████████████████████████████████████████████████████████| 13905/13905 [3:01:34<00:00,  1.28it/s]
+100%|█████████████████████████████████████████████████████████████████████████████████| 264/264 [01:07<00:00,  3.91it/s]
