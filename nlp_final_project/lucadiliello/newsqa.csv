@@ -1,0 +1,2 @@
+,exact,f1,total,HasAns_exact,HasAns_f1,HasAns_total,best_exact,best_exact_thresh,best_f1,best_f1_thresh,total_time_in_seconds,samples_per_second,latency_in_seconds
+deepset/roberta-base-squad2-distilled,0.0,16.666666666666664,4,0.0,16.666666666666664,4,0.0,0.0,16.666666666666664,0.7696276307106018,0.27156606200151145,14.729381022499554,0.06789151550037786
