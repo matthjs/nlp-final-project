@@ -73,11 +73,11 @@ def inference(documents: str = None):
         if user_input.lower() == "exit":
             print("Goodbye!")
             break
+
+        # Split input into question and context
+        question, _, context = user_input.partition(" : ")
+        if not context:
+            answer, _ = qa_pipeline.answer_question(question)
         else:
-            # Split input into question and context
-            question, _, context = user_input.partition(" : ")
-            if not context:
-                answer, _ = qa_pipeline.answer_question(question)
-            else:
-                answer, _ = qa_pipeline.answer_question(question, context_string=context)
-            print(answer)
+            answer, _ = qa_pipeline.answer_question(question, context_string=context)
+        print(answer)

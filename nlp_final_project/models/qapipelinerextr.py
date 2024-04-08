@@ -16,15 +16,17 @@ from loguru import logger
 from nlp_final_project.models.qapipeline import QAPipeline
 
 
-def simplify_prediction_output(prediction: dict) -> str:
+def simplify_prediction_output(prediction: dict, default_no_answer_str="<no answer>") -> str:
     """
     Simplify the prediction output into a human-readable string.
 
+    :param default_no_answer_str:
     :param prediction: The prediction dictionary containing answers.
     :return: Human-readable string containing question, confidence, and answer.
     """
-    return "\n".join([f"Question: {answer.query}\nConfidence: {round(answer.score, 2)}\nAnswer: {answer.data}\n" \
-                      for answer in prediction['answers'] if answer.data is not None])
+    return "\n".join([f"Question: {answer.query}\nConfidence: {round(answer.score, 2)}\nAnswer: "
+                      f"{answer.data if answer.data is not None else default_no_answer_str}\n" \
+                      for answer in prediction['answers']])
 
 
 class QAPipelineRetrieverExtractor(QAPipeline):
@@ -58,7 +60,7 @@ class QAPipelineRetrieverExtractor(QAPipeline):
         self.indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="writer")
         self.indexing_pipeline.connect("embedder.documents", "writer.documents")
 
-        if index_documents:    # You do not want to do this if you load the document_store object.
+        if index_documents:  # You do not want to do this if you load the document_store object.
             logger.debug("Running indexing pipeline on documents...")
             self.indexing_pipeline.run({"documents": documents})
             logger.debug("Done running index pipeline on documents!")
