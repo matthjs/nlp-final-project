@@ -51,17 +51,20 @@ The project is run through the `main.py` script. You can give it the following c
    python script.py inference <hugging_face_dataset>
    ```
 
-2. **Evaluate reader on out of distribution test sets:**
-   ```bash
-   python script.py test
-   ```
-
-3. **Train [baseline](https://huggingface.co/distilbert/distilbert-base-uncased) reader model and [primary](https://huggingface.co/deepset/roberta-base-squad2-distilled) reader model on NewsQA train set:**
+2. **Train [baseline](https://huggingface.co/distilbert/distilbert-base-uncased) reader model and [primary](https://huggingface.co/deepset/roberta-base-squad2-distilled) reader model on NewsQA train set:**
    ```bash
    python script.py train
    ```
 
-4. **Evaluate reader models (baseline, primary) on NewsQA evaluation set:**
+3**Evaluate reader models (baseline, primary) on NewsQA evaluation set:**
    ```bash
    python script.py eval
    ```
+
+4**Evaluate reader models (baseline, primary) on out of distribution test sets:**
+   ```bash
+   python script.py test
+   ```
+
+
+
