@@ -198,7 +198,8 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
                                            "VMware/electra-small-mrqa"]),
                      display=False,
                      max_data_size=None,
-                     max_length=512):    # This is a bit eh.
+                     max_length=512,
+                     test_flag=False):    # This is stupid but it does the job to get the results.
     """
     Evaluate a fine-tuned Question Answering BERT model. Evaluation is done on the dev/evaluation set
     of the passed dataset.
@@ -209,14 +210,22 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
     :param display: Whether to display evaluation results. Defaults to True.
     :param max_data_size: Maximum number of data samples to use for evaluation. Defaults to None.
     :param max_length: Maximum length of input sequences. Defaults to 512.
+    :param test_flag: to indicate whether we should index by validation or test set.
     :return: F1 scores and exact match scores.
     """
     dataset = load_dataset(dataset_str)
 
-    if max_data_size is None:
-        validation_set = dataset["validation"]
+    # This code block is so ugly.
+    if test_flag:
+        if max_data_size is None:
+            validation_set = dataset["test"]
+        else:
+            validation_set = dataset["test"].select(range(max_data_size))
     else:
-        validation_set = dataset["validation"].select(range(max_data_size))
+        if max_data_size is None:
+            validation_set = dataset["validation"]
+        else:
+            validation_set = dataset["validation"].select(range(max_data_size))
 
     # Load pre-trained BERT model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(models_strs[0])
