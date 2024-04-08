@@ -15,5 +15,6 @@ RUN poetry install --no-root --no-interaction --no-ansi
 # Copy the entire project code to the container
 COPY . .
 
-# Command to run your application
-CMD ["python", "nlp_final_project/main.py"]
+# Command to run your application with the "inference" argument
+# Add another command line argument if you want to include a document collection.
+CMD ["python", "nlp_final_project/main.py", "inference"]

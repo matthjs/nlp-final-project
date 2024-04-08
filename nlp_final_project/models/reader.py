@@ -193,8 +193,8 @@ def train_transformer(dataset_str="lucadiliello/newsqa", model_str="distilbert/d
 
 
 def eval_transformer(dataset_str="lucadiliello/newsqa",
-                     models_strs=np.array(["distilbert/distilbert-base-uncased_final",
-                                           "deepset/roberta-base-squad2-distilled_final",
+                     models_strs=np.array(["Matthijs0/DistilBERT",
+                                           "Matthijs0/Distilled-RoBERTa",
                                            "VMware/electra-small-mrqa"]),
                      display=False,
                      max_data_size=None,
@@ -236,14 +236,14 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
             # n_resamples=3,
             squad_v2_format=True
         ))
+
     # df = pd.DataFrame(results, index=models_strs)
     # df.to_csv(dataset_str + ".csv")
 
     print(results)
 
     if display:
-        print(results)
-
+        pass
         # This is broken.
         # plot = radar_plot(data=results, model_names=models_strs, invert_range=["latency_in_seconds"])
         # plot.show()
@@ -251,9 +251,8 @@ def eval_transformer(dataset_str="lucadiliello/newsqa",
     return [entry['f1'] for entry in results], [entry['exact'] for entry in results]
 
 
-def test_transformer(models_strs=np.array(["distilbert/distilbert-base-uncased_final",
-                                           "deepset/roberta-base-squad2-distilled_final",
-                                           "deepset/roberta-base-squad2-distilled_trained",
+def test_transformer(models_strs=np.array(["Matthijs0/DistilBERT",
+                                           "Matthijs0/Distilled-RoBERTa",
                                            "VMware/electra-small-mrqa"])):
     """
     Evaluate pre-trained Question Answering BERT models on various datasets.
@@ -273,7 +272,7 @@ def test_transformer(models_strs=np.array(["distilbert/distilbert-base-uncased_f
     eval_transformer(dataset_str="lucadiliello/duorc.paraphrasercqa", models_strs=models_strs)
 
 
-def fine_tuned_reader(model_str="deepset/roberta-base-squad2-distilled_final"):
+def fine_tuned_reader(model_str="Matthijs0/Distilled-RoBERTa"):
     """
     Initialize a fine-tuned Question Answering BERT reader.
 
