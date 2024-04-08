@@ -56,7 +56,7 @@ The project is run through the `main.py` script. You can give it the following c
    python script.py train
    ```
 
-3. **Evaluate reader models (baseline, primary) on NewsQA evaluation set:**
+3. **Evaluate reader models (baseline, primary) on [NewsQA](https://huggingface.co/datasets/lucadiliello/newsqa) evaluation set:**
    ```bash
    python script.py eval
    ```
